@@ -1,0 +1,93 @@
+---
+title: "Boligbehov prognoser fra Panda modell - boligmodul"
+format: html
+---
+
+```{r}
+#| label: setup
+#| include: false
+#| warning: false
+#| echo: false
+
+library(pacman)
+
+p_load(char = c("tidyverse","here","openxlsx"))
+
+data<- read.xlsx(xlsxFile = here("Data","Analyse_data","prognose_analyse_data.xlsx")) |> 
+    mutate(year = as.character(year)) |> 
+    mutate(year = gsub("-01-01","",year))
+
+
+bfs<- read.xlsx(here("Data","B_framskrivinger","rogaland_befolkning_framskrivinger_etter2020.xlsx")) %>% filter(grepl(pattern = "(MMMM)",x = statistikkvariabel) & framskriving_dato == "2024")
+
+```
+
+# Om boligmodullen:
+
+Panda models boligmodul er en deterministsk formell som beskriver hvordan boligmasse ville utvikle seg basert på befolkningsutvikling, husholdning sammensetning og sentralitetsklassen av kommunene....
+
+## Modell karakteristisker
+
+## Treffsikkerhet og feilmargin av modellen
+
+### Usikkerhet fra befolkningsframskrivinger
+
+### Usikkerhet fra Husholdnings komponent
+
+### Avvik per sentralitets klasse og kommune
+
+
+# Oversikt av prognoser
+
+## Total etterspørsel
+```{r}
+#| label: prognoser for Rogaland
+#| echo: false
+
+rogaland_boligprognoser<- data %>%
+    group_by(year,bolig_storrelse) %>% 
+    summarise(antall_bolig = sum(housing_demand)) %>%
+    ungroup() 
+
+rogaland_befolknings_prognoser<- bfs %>%
+    group_by(år) %>% 
+    summarise(befolkning = sum(value))
+
+graph_data<- left_join(rogaland_boligprognoser,rogaland_befolknings_prognoser,by = c("year"="år"))
+
+graph_data |> 
+    mutate(befolkning = round(befolkning/1000),
+           antall_bolig = round(antall_bolig/1000)) |> 
+    ggplot() +
+    geom_line(aes(x = year,y = befolkning,group = 1),linewidth = 1.2,linetype =2)+
+    geom_col(aes(x= year, y = antall_bolig, fill = bolig_storrelse),position = "stack")+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+    labs(x = "År",y = "Antall (per 1000)")+
+    annotate("text", x = "2027", y = (540),label = "Framskrevet befolkning" ,fontface = "bold")+
+    guides(fill = guide_legend(title = "Bolig størrelse"))
+
+
+```
+
+
+## Etterspørsel etter husholdning størrelse og alder
+
+```{r}
+#| etterspørsel i rogaland etter størrelse og husholdningsalder
+#| echo: false
+
+graph_data<- data |> 
+    group_by(year,household_size,bolig_storrelse) |> 
+    summarise(antall_bolig = sum(housing_demand)) |> 
+    filter(year == 2050)
+
+graph_data |> 
+    ggplot()+
+    geom_tile(aes(x = household_size,y = bolig_storrelse, fill = antall_bolig))
+    
+
+```
+
+## Etterspørsel etter kommune og sentralitetsklasse
+
