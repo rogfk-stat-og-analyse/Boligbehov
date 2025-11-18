@@ -6,6 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Sina F. Özdemir">
+<meta name="author" content="Rune Thorkildsen Slettebak">
 
 <title>Boligbehov prognoser fra Panda modell - boligmodul</title>
 <style>
@@ -50,10 +52,31 @@ ul.task-list li input[type="checkbox"] {
 </div>
 
 
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Authors</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Sina F. Özdemir <a href="mailto:sina.furkan.ozdemir@rogfk.no" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Rogaland Fylkeskommune- Regional kompetanse og analyse
+          </p>
+      </div>
+    <div class="quarto-title-meta-contents">
+    <p class="author">Rune Thorkildsen Slettebak <a href="mailto:rune.slettebak@rogfk.no" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Rogaland Fylkeskommune- Regional kompetanse og analyse
+          </p>
+      </div>
+  </div>
 
 <div class="quarto-title-meta">
 
-    
+      
   
     
   </div>
@@ -65,46 +88,74 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="om-boligmodullen" class="level1">
 <h1>Om boligmodullen:</h1>
-<p>Panda models boligmodul er en deterministsk formell som beskriver hvordan boligmasse ville utvikle seg basert på befolkningsutvikling, husholdning sammensetning og sentralitetsklassen av kommunene….</p>
-<section id="modell-karakteristisker" class="level2">
-<h2 class="anchored" data-anchor-id="modell-karakteristisker">Modell karakteristisker</h2>
+<p>Boligmodulen i Panda-modellen beregner etterspørselen i boligmarkedet for hver kommune i framskrivingsperioden.</p>
+<p>Etterspørselen etter boliger avhenger av befolkningsutviklingen i kommunen og av husholdningenes boligpreferanser. Disse preferansene varierer mellom husholdninger. Vi antar at alle personer/husholdninger ønsker seg en bolig, men at ønskene varierer med familiesituasjonen (her: familiestørrelse og alder). Preferansene påvirkes også av hvor i landet husholdningen bor (sentrale eller mindre sentrale strøk).</p>
+<p>Modellen legger til grunn at den demografiske utviklingen i kommunene er den viktigste driveren for boligetterspørselen, sammen med forutsetninger om hvilke boliger befolkningen ønsker (såkalte boligpreferanser). Befolkningsutviklingen bygger på befolkningsframskrivinger.</p>
+<p>Modellen antar at det er husholdninger, ikke enkeltpersoner, som etterspør boliger. Alders- og husholdningssammensetningen i befolkningen er dermed viktig. Befolkningen (målt i antall personer) aggregeres til husholdninger ved hjelp av husholdningsfrekvenser.</p>
+<p>Boligpreferansene er definert for ulike typer husholdninger, avhengig av husholdningsstørrelse (antall personer i husholdningen), alder (bestemt av husholdningens kontaktperson) og bosted (kommunens sentralitetsklasse). Følgende forutsetninger ligger til grunn for boligetterspørselen:</p>
+<ul>
+<li><p>Ønsket areal øker med antall husholdningsmedlemmer. For eksempel vil en familie på fem ønske seg en større bolig enn en familie på to. Modellen skiller ikke mellom boligtyper (leilighet, rekkehus, enebolig m.m.), men kun mellom boliger av ulikt areal (målt i m²). Behovet for en bolig av en viss størrelse kan derfor dekkes av ulike boligtyper, for eksempel en stor leilighet, et rekkehus eller en enebolig.</p></li>
+<li><p>Ønsket boligstørrelse er basert på dagens eierskap. Det vil si at dersom husholdninger på tre personer i aldersgruppen 20–25 år, bosatt i kommuner med sentralitetsklasse 5, ofte eier boliger på 130 m², antar modellen at samme type husholdning vil ønske seg tilsvarende størrelse i framtiden.</p></li>
+<li><p>Ønsket areal øker med alder, flater ut rundt 45–50 år og synker igjen fra omtrent pensjonsalder.</p></li>
+<li><p>Det finnes forskjeller i boligpreferanser mellom sentrale og mindre sentrale kommuner.</p></li>
+</ul>
+<p>Datagrunnlaget for modellen er basert på gjennomsnitt per husholdningskategori og sentralitetsklasse for hele landet. Regionale avvik er ikke tatt hensyn til. Med andre ord antar modellen at enhver husholdning med tre personer, i aldersgruppen 20–25 år og bosatt i en kommune med sentralitetsklasse 5, ønsker seg samme boligstørrelse uavhengig av hvor i landet de bor.</p>
 </section>
-<section id="treffsikkerhet-og-feilmargin-av-modellen" class="level2">
-<h2 class="anchored" data-anchor-id="treffsikkerhet-og-feilmargin-av-modellen">Treffsikkerhet og feilmargin av modellen</h2>
-<section id="usikkerhet-fra-befolkningsframskrivinger" class="level3">
-<h3 class="anchored" data-anchor-id="usikkerhet-fra-befolkningsframskrivinger">Usikkerhet fra befolkningsframskrivinger</h3>
+<section id="oversikt-av-prognoser-for-rogaland" class="level1">
+<h1>Oversikt av prognoser for Rogaland</h1>
 </section>
-<section id="usikkerhet-fra-husholdnings-komponent" class="level3">
-<h3 class="anchored" data-anchor-id="usikkerhet-fra-husholdnings-komponent">Usikkerhet fra Husholdnings komponent</h3>
-</section>
-<section id="avvik-per-sentralitets-klasse-og-kommune" class="level3">
-<h3 class="anchored" data-anchor-id="avvik-per-sentralitets-klasse-og-kommune">Avvik per sentralitets klasse og kommune</h3>
-</section>
-</section>
-</section>
-<section id="oversikt-av-prognoser" class="level1">
-<h1>Oversikt av prognoser</h1>
+<section id="total-etterspørsel" class="level1">
+<h1>Total etterspørsel</h1>
 <div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>`summarise()` has grouped output by 'year'. You can override using the
-`.groups` argument.</code></pre>
-</div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="pandamodell_notat_files/figure-html/prognoser%20for%20Rogaland-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="pandamodell_notat_files/figure-html/prognoser_for_Rogaland-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<section id="total-etterspørsel" class="level2">
-<h2 class="anchored" data-anchor-id="total-etterspørsel">Total etterspørsel</h2>
+<section id="etterspørsel-etter-husholdning-og-bolig-størrelse" class="level2">
+<h2 class="anchored" data-anchor-id="etterspørsel-etter-husholdning-og-bolig-størrelse">Etterspørsel etter husholdning og bolig størrelse</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pandamodell_notat_files/figure-html/etterspørsel_etter_størrelse_og_husholdningsalder-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
-<section id="etterspørsel-etter-husholdning-størrelse-og-alder" class="level2">
-<h2 class="anchored" data-anchor-id="etterspørsel-etter-husholdning-størrelse-og-alder">Etterspørsel etter husholdning størrelse og alder</h2>
+<section id="utviklingsindeks-for-etterspørsel-etter-boligstørrelse-og-kommune-sentralitet" class="level2">
+<h2 class="anchored" data-anchor-id="utviklingsindeks-for-etterspørsel-etter-boligstørrelse-og-kommune-sentralitet">Utviklingsindeks for etterspørsel etter boligstørrelse og kommune sentralitet</h2>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="pandamodell_notat_files/figure-html/etterspørsel%20per%20kommunal%20sentralitetsklasse-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
-<section id="etterspørsel-etter-kommune-og-sentralitetsklasse" class="level2">
-<h2 class="anchored" data-anchor-id="etterspørsel-etter-kommune-og-sentralitetsklasse">Etterspørsel etter kommune og sentralitetsklasse</h2>
+</section>
+<section id="tekniske-detaljer-om-modellen---under-arbeid" class="level1">
+<h1>Tekniske detaljer om Modellen - [Under arbeid]</h1>
+<section id="matematiske-egenskaper-av-modellen" class="level2">
+<h2 class="anchored" data-anchor-id="matematiske-egenskaper-av-modellen">Matematiske egenskaper av modellen</h2>
+</section>
+<section id="treffsikkerhet-og-feilmarginer-av-modellen" class="level2">
+<h2 class="anchored" data-anchor-id="treffsikkerhet-og-feilmarginer-av-modellen">Treffsikkerhet og feilmarginer av modellen</h2>
+<section id="usikkerhet-fra-befolkningsframskrivinger" class="level3">
+<h3 class="anchored" data-anchor-id="usikkerhet-fra-befolkningsframskrivinger">Usikkerhet fra befolkningsframskrivinger</h3>
+</section>
+<section id="usikkerhet-fra-husholdning-komponent" class="level3">
+<h3 class="anchored" data-anchor-id="usikkerhet-fra-husholdning-komponent">Usikkerhet fra Husholdning komponent</h3>
+</section>
+<section id="avvik-per-sentralitetsklasse-og-kommune" class="level3">
+<h3 class="anchored" data-anchor-id="avvik-per-sentralitetsklasse-og-kommune">Avvik per sentralitetsklasse og kommune</h3>
+</section>
 </section>
 </section>
 

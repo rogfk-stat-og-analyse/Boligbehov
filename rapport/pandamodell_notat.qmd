@@ -1,6 +1,20 @@
 ---
 title: "Boligbehov prognoser fra Panda modell - boligmodul"
+author: 
+    - name: Sina F. Özdemir
+      email: sina.furkan.ozdemir@rogfk.no
+      affiliations:
+        - name: Rogaland Fylkeskommune- Regional kompetanse og analyse
+    - name: Rune Thorkildsen Slettebak
+      email: rune.slettebak@rogfk.no
+      affiliations:
+        - name: Rogaland Fylkeskommune- Regional kompetanse og analyse
 format: html
+execute: 
+  echo: false
+  warning: false
+  message: false
+  error: false
 ---
 
 ```{r}
@@ -11,7 +25,7 @@ format: html
 
 library(pacman)
 
-p_load(char = c("tidyverse","here","openxlsx"))
+p_load(char = c("tidyverse","here","openxlsx","ggrepel"))
 
 data<- read.xlsx(xlsxFile = here("Data","Analyse_data","prognose_analyse_data.xlsx")) |> 
     mutate(year = as.character(year)) |> 
@@ -24,24 +38,32 @@ bfs<- read.xlsx(here("Data","B_framskrivinger","rogaland_befolkning_framskriving
 
 # Om boligmodullen:
 
-Panda models boligmodul er en deterministsk formell som beskriver hvordan boligmasse ville utvikle seg basert på befolkningsutvikling, husholdning sammensetning og sentralitetsklassen av kommunene....
+Boligmodulen i Panda-modellen beregner etterspørselen i boligmarkedet for hver kommune i framskrivingsperioden.
 
-## Modell karakteristisker
+Etterspørselen etter boliger avhenger av befolkningsutviklingen i kommunen og av husholdningenes boligpreferanser. Disse preferansene varierer mellom husholdninger. Vi antar at alle personer/husholdninger ønsker seg en bolig, men at ønskene varierer med familiesituasjonen (her: familiestørrelse og alder). Preferansene påvirkes også av hvor i landet husholdningen bor (sentrale eller mindre sentrale strøk).
 
-## Treffsikkerhet og feilmargin av modellen
+Modellen legger til grunn at den demografiske utviklingen i kommunene er den viktigste driveren for boligetterspørselen, sammen med forutsetninger om hvilke boliger befolkningen ønsker (såkalte boligpreferanser). Befolkningsutviklingen bygger på befolkningsframskrivinger.
 
-### Usikkerhet fra befolkningsframskrivinger
+Modellen antar at det er husholdninger, ikke enkeltpersoner, som etterspør boliger. Alders- og husholdningssammensetningen i befolkningen er dermed viktig. Befolkningen (målt i antall personer) aggregeres til husholdninger ved hjelp av husholdningsfrekvenser.
 
-### Usikkerhet fra Husholdnings komponent
+Boligpreferansene er definert for ulike typer husholdninger, avhengig av husholdningsstørrelse (antall personer i husholdningen), alder (bestemt av husholdningens kontaktperson) og bosted (kommunens sentralitetsklasse). Følgende forutsetninger ligger til grunn for boligetterspørselen:
 
-### Avvik per sentralitets klasse og kommune
+-   Ønsket areal øker med antall husholdningsmedlemmer. For eksempel vil en familie på fem ønske seg en større bolig enn en familie på to. Modellen skiller ikke mellom boligtyper (leilighet, rekkehus, enebolig m.m.), men kun mellom boliger av ulikt areal (målt i m²). Behovet for en bolig av en viss størrelse kan derfor dekkes av ulike boligtyper, for eksempel en stor leilighet, et rekkehus eller en enebolig.
 
+-   Ønsket boligstørrelse er basert på dagens eierskap. Det vil si at dersom husholdninger på tre personer i aldersgruppen 20–25 år, bosatt i kommuner med sentralitetsklasse 5, ofte eier boliger på 130 m², antar modellen at samme type husholdning vil ønske seg tilsvarende størrelse i framtiden.
 
-# Oversikt av prognoser
+-   Ønsket areal øker med alder, flater ut rundt 45–50 år og synker igjen fra omtrent pensjonsalder.
 
-## Total etterspørsel
+-   Det finnes forskjeller i boligpreferanser mellom sentrale og mindre sentrale kommuner.
+
+Datagrunnlaget for modellen er basert på gjennomsnitt per husholdningskategori og sentralitetsklasse for hele landet. Regionale avvik er ikke tatt hensyn til. Med andre ord antar modellen at enhver husholdning med tre personer, i aldersgruppen 20–25 år og bosatt i en kommune med sentralitetsklasse 5, ønsker seg samme boligstørrelse uavhengig av hvor i landet de bor.
+
+# Oversikt av prognoser for Rogaland
+
+# Total etterspørsel
+
 ```{r}
-#| label: prognoser for Rogaland
+#| label: prognoser_for_Rogaland
 #| echo: false
 
 rogaland_boligprognoser<- data %>%
@@ -62,32 +84,96 @@ graph_data |>
     geom_line(aes(x = year,y = befolkning,group = 1),linewidth = 1.2,linetype =2)+
     geom_col(aes(x= year, y = antall_bolig, fill = bolig_storrelse),position = "stack")+
     theme_bw()+
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),legend.position = "bottom")+
+    scale_y_continuous(breaks = seq(0,max(graph_data$befolkning)/1000,by= 50))+
     labs(x = "År",y = "Antall (per 1000)")+
-    annotate("text", x = "2027", y = (540),label = "Framskrevet befolkning" ,fontface = "bold")+
+    annotate("text", x = "2029", y = (450),label = "Framskrevet befolkning" ,fontface = "bold")+
     guides(fill = guide_legend(title = "Bolig størrelse"))
 
 
 ```
 
-
-## Etterspørsel etter husholdning størrelse og alder
+## Etterspørsel etter husholdning og bolig størrelse
 
 ```{r}
-#| etterspørsel i rogaland etter størrelse og husholdningsalder
+#| label: etterspørsel_etter_størrelse_og_husholdningsalder
 #| echo: false
 
 graph_data<- data |> 
     group_by(year,household_size,bolig_storrelse) |> 
     summarise(antall_bolig = sum(housing_demand)) |> 
-    filter(year == 2050)
+    mutate(husholdning_bolig = paste0(household_size," - ",bolig_storrelse)) |> 
+    #mutate(antall_bolig = round(antall_bolig/1000)) |> 
+    mutate(text_label = if_else(antall_bolig >=30000 & year == 2046,husholdning_bolig,NA)) |> 
+    ungroup()
+
+data_labels<- graph_data %>% filter(!is.na(text_label))
+
 
 graph_data |> 
-    ggplot()+
-    geom_tile(aes(x = household_size,y = bolig_storrelse, fill = antall_bolig))
+    ggplot(aes(x = year, y = antall_bolig,group = husholdning_bolig, color = husholdning_bolig))+
+    geom_line(linewidth = 1.5,show.legend = F)+
+    geom_text(
+    data = data_labels,
+    aes(label = husholdning_bolig),
+    hjust = 0,            # left‐justify so text moves right
+    nudge_x = -2,
+    nudge_y = 1000,        # move labels slightly to the right
+    size = 3,
+    show.legend = FALSE,
+    color = "black"
+  ) +
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1 ,hjust = 1))+
+    coord_cartesian(clip = "off")+
+    labs(x = "År", y = "Antall boliger")
+   
     
 
 ```
 
-## Etterspørsel etter kommune og sentralitetsklasse
+## Utviklingsindeks for etterspørsel etter boligstørrelse og kommune sentralitet
 
+```{r}
+#| label: etterspørsel per kommunal sentralitetsklasse
+#| echo: false
+#| fig-width: 12
+#| fig-height: 9
+#| fig.align: "center"
+
+graph_data<- data |> 
+    group_by(year,sentralitetsklasse,bolig_storrelse) |> 
+    summarise(antall_bolig = sum(housing_demand)) |> 
+    mutate(sentralitetsklasse = paste0("sentralitetsklasse: ", sentralitetsklasse)) |> 
+    ungroup() |> 
+    group_by(sentralitetsklasse,bolig_storrelse) |> 
+    arrange(as.numeric(year)) |> 
+    mutate(indeks = (antall_bolig/first(antall_bolig))*100)
+
+
+
+graph_data |>  
+    ggplot(aes(x = year, y = indeks,group = bolig_storrelse))+
+    geom_line(aes(color = bolig_storrelse),linewidth = 1.2)+
+    labs(x = "År", y = "Antall bolig", subtitle = "indeks(2025 =100)")+
+    theme_bw(base_size = 12)+
+    theme(legend.position = "bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+    facet_wrap(~sentralitetsklasse)
+
+
+
+```
+
+# Tekniske detaljer om Modellen - \[Under arbeid\]
+
+## Matematiske egenskaper av modellen
+
+## Treffsikkerhet og feilmarginer av modellen
+
+### Usikkerhet fra befolkningsframskrivinger
+
+### Usikkerhet fra Husholdning komponent
+
+### Avvik per sentralitetsklasse og kommune

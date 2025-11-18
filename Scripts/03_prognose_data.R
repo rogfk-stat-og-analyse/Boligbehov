@@ -26,8 +26,7 @@ prognose_Data<- left_join(prognose_Data,geografiske_referanse_koder, by = c("mun
 # data correction --------------------------------------------------------
 
 analyse_data<- prognose_Data %>% 
-  mutate(year = paste0(as.character(year),"-01-01")) %>% 
-  mutate(year = ymd(as_date(year))) %>% 
+  mutate(year = paste0(as.character(year),"-01-01")) %>%  
   mutate(age = str_remove(age_interval,pattern = "INTERVAL_"),
          age = gsub("_","-",age),
         age = sub("-INF","+",age)) %>%
