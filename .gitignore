@@ -50,6 +50,10 @@ rsconnect/
 
 #Folders
 Data/
+quarto_pdf_test_files/
+tidligere_analyser/
+norce_model/
+dokumentasjon/
 
 #Data files
 *.json
