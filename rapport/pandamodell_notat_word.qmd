@@ -9,7 +9,7 @@ author:
       email: rune.slettebak@rogfk.no
       affiliations:
         - name: Rogaland Fylkeskommune- Regional kompetanse og analyse
-format: pdf
+format: docx
 execute:
   eval: false
   echo: false
