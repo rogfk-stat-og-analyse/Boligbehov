@@ -155,3 +155,59 @@ for(i in 1:nrow(projection_bf)){
 write.table(bolig_prognoser, file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.txt"),sep = ";",row.names = F,col.names = T,fileEncoding = "UTF-8")
 
 write.xlsx(x = bolig_prognoser,file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx"))
+
+
+
+# merge projections ------------------------------------------------------
+
+firem <- read.xlsx(here("Data","Analyse_data","prognose_analyse_data.xlsx"),sheet = 1) %>% 
+  rename(kommune_kode = municipality_code,
+         kommune_navn = municipality_name,
+         år = year,
+         husholdning_størrelse = household_size,
+         alder_gruppe = household_age,
+        sentralitet = sentralitetsklasse) %>% 
+  mutate(bolig_storrelse = case_when(bolig_storrelse == "0-79 kvdm"~"små_bolig_p",
+                                     bolig_storrelse == "80-159 kvdm"~"mellom_bolig_p",
+                                     bolig_storrelse == "160+ kvdm" ~ "stor_bolig_p",.default = "udefiner_p")) %>% 
+  pivot_wider(names_from = bolig_storrelse,values_from = housing_demand) %>% 
+  mutate(framskriving_alternativ = "Hovedalternativet (MMMM)") %>% 
+  mutate(år = gsub("-01-01","",år)) %>% 
+  mutate(alder_gruppe = paste0(alder_gruppe," år")) %>% 
+  filter(alder_gruppe != "0-14 år")
+
+distrikter<- firem %>% 
+  select(kommune_kode,kommune_navn,oekonomiskregion_kode,oekonomiskregion_navn) %>% 
+  distinct()
+  
+andre_alternativer<- read.xlsx(here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx")) %>% 
+  left_join(.,distrikter, by = c("kommune_kode","kommune_navn")) %>% 
+  select(-udefinert_p) %>% 
+  filter(år != "2024") %>% 
+  mutate(husholdning_størrelse = paste0(husholdning_størrelse," Personer"))
+
+
+full_prognoser<- rbind(firem,andre_alternativer)
+
+summarytools::dfSummary(full_prognoser)
+
+#.txt
+write.table(full_prognoser,
+   file = here("Data","Analyse_data","boligbehov_scenario_prognoser.txt"),
+   sep = ";",
+   row.names = F,
+   col.names = T,
+   fileEncoding = "UTF-8")
+
+#.csv
+
+write.table(full_prognoser,
+  file = here("Data","Analyse_data","boligbehov_scenario_prognoser.csv"),
+  sep = ",",
+  row.names = F,
+  col.names = T,
+  fileEncoding = "UTF-8")
+
+#.xlsx
+write.xlsx(full_prognoser,
+  file = here("Data","Analyse_data","boligbehov_scenario_prognoser.xlslx"))

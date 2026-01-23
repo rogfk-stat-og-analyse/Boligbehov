@@ -12,7 +12,7 @@ library(DT)
 library(plotly)
 
 #-------------------------------------------------
-# 1. Funksjon for SSB PxWeb v2
+# 1. Funksjon for SSB PxWeb v2 -------------------
 #-------------------------------------------------
 
 ssb_pxweb2_get <- function(url) {
@@ -51,7 +51,7 @@ get_06265 <- function() {
 }
 
 #-------------------------------------------------
-# 2. Hent data (direkte fra API) og klargjør
+# 2. Hent data (direkte fra API) og klargjør -----
 #-------------------------------------------------
 
 df_06265 <- get_06265()

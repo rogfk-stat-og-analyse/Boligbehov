@@ -9,13 +9,21 @@ author:
       email: rune.slettebak@rogfk.no
       affiliations:
         - name: Rogaland Fylkeskommune- Regional kompetanse og analyse
-format: docx
+format: 
+    docx:
+      fig-format: svg
+      fig-dpi: 600
 execute:
   eval: false
   echo: false
   warning: false
   message: false
   error: false
+knitr:
+  opts_chunk: 
+    dev: "ragg_svg"
+    fig.width: 7
+    fig.height: 4
 ---
 
 # Om boligmodullen:

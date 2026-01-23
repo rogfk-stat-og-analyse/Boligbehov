@@ -4,7 +4,7 @@
 
 library(pacman)
 
-p_load(char = c("tidyverse","here","openxlsx","palettes"))
+p_load(char = c("tidyverse","here","openxlsx","palettes","scales"))
 
 sansynlighetsvekter_dir<- here("Data","panda_vekter","panda_sansynlighetsvekter.xlsx")
 
@@ -48,9 +48,13 @@ andel_kontakt_avvik<- andel_kontakt %>%
 
 ggplot(andel_kontakt_avvik, aes(x = alder_gruppe, y = sentralitet))+
   geom_tile(aes(fill = TV_pp),show.legend = F)+
-  geom_text(aes(label = tile_labels),color = "white",fontface = "bold")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.5))+
+  geom_text(aes(label = tile_labels),color = "white",fontface = "bold",size = 6)+
+  theme_minimal(base_size = 12)+
+    theme(axis.text.x = element_text(angle = 45,
+      vjust = .5,
+      hjust = 0.5,
+      size = 14),
+  axis.text.y = element_text(size = 14), axis.title.x = element_text(size = 16),axis.title.y = element_text(size = 16))+
   scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 50)+
   labs(x = "Husholdnings alder", y = "Kommune sentralitet")
 
@@ -80,9 +84,13 @@ hh_andel_kontakt_avvik<- andel_kontakt %>%
 
   ggplot(hh_andel_kontakt_avvik, aes(x = husholdnings_storrelse, y = sentralitet))+
     geom_tile(aes(fill = TV_pp),show.legend = F)+
-    geom_text(aes(label = tile_labels),color = "white",fontface = "bold")+
-    theme_minimal()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.5))+
+    geom_text(aes(label = tile_labels),color = "white",fontface = "bold", size = 6)+
+    theme_minimal(base_size = 12)+
+    theme(axis.text.x = element_text(angle = 45,
+          vjust = .5,
+          hjust = 0.5,
+          size = 14),
+      axis.text.y = element_text(size = 14), axis.title.x = element_text(size = 16),axis.title.y = element_text(size = 16))+
     scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 50)+
     labs(x = "Husholdnings størrelse", y = "Kommune sentralitet")
  
@@ -93,7 +101,7 @@ hh_andel_kontakt_avvik<- andel_kontakt %>%
 
 hhfreq_nasj<- read.xlsx(xlsxFile = sansynlighetsvekter_dir,sheet = sheet_names[3],na.strings = "-") %>% 
   select(-Total) %>% 
-  pivot_longer(cols = `1`:`6`,names_to= "husholdnings_storrelse",values_to = "andel_nasjonal") %>% 
+  pivot_longer(cols = hh_1:hh_6,names_to= "husholdnings_storrelse",values_to = "andel_nasjonal") %>% 
   mutate(andel_nasjonal = replace_na(andel_nasjonal,0),
          andel_nasjonal = andel_nasjonal/100) %>% 
   filter(sentralitet != 1)
@@ -101,7 +109,7 @@ hhfreq_nasj<- read.xlsx(xlsxFile = sansynlighetsvekter_dir,sheet = sheet_names[3
 
 hhfreq_rog<- read.xlsx(xlsxFile = sansynlighetsvekter_dir,sheet = sheet_names[4],na.strings = "-") %>% 
   select(-Total) %>% 
-  pivot_longer(cols = `1`:`6`,names_to= "husholdnings_storrelse",values_to = "andel_rog")  %>% 
+  pivot_longer(cols = hh_1:hh_6,names_to= "husholdnings_storrelse",values_to = "andel_rog")  %>% 
   mutate(andel_rog = replace_na(andel_rog, 0),
          andel_rog = andel_rog/100)
 
@@ -133,9 +141,13 @@ mutate(tile_labels = paste0(round(TV_pp),"%"))
 
 ggplot(hhfreq_avvik_rep, aes(x = alder_gruppe, y = sentralitet))+
   geom_tile(aes(fill = TV_pp),show.legend = F)+
-  geom_text(aes(label = tile_labels),color = "white",fontface = "bold")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.5))+
+  geom_text(aes(label = tile_labels),color = "white",fontface = "bold",size = 6)+
+  theme_minimal(base_size = 12)+
+    theme(axis.text.x = element_text(angle = 45,
+      vjust = .5,
+      hjust = 0.5,
+      size = 14),
+  axis.text.y = element_text(size = 14), axis.title.x = element_text(size = 16),axis.title.y = element_text(size = 16))+
   scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 7)+
   labs(x = "Husholdnings størrelse", y = "Kommune sentralitet")
 
@@ -161,14 +173,20 @@ hhfreq_avvik_str<- hhfreq_avvik %>%
     TV_pp = TV*100,
     MaxDev_pp = Max_Dev*100  
   ) %>% 
-  mutate(tile_labels = paste0(round(TV_pp),"%"))
+  mutate(tile_labels = paste0(round(TV_pp),"%")) %>% 
+  mutate(husholdnings_storrelse = gsub("hh_","",husholdnings_storrelse),
+         husholdnings_storrelse = if_else(husholdnings_storrelse == "6",paste0(husholdnings_storrelse,"+"),husholdnings_storrelse))
   
   ggplot(hhfreq_avvik_str, aes(x = husholdnings_storrelse, y = sentralitet))+
     geom_tile(aes(fill = TV_pp),show.legend = F)+
-    geom_text(aes(label = tile_labels),color = "white",fontface = "bold")+
-    theme_minimal()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.5))+
-    scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 7)+
+    geom_text(aes(label = tile_labels),color = "white",fontface = "bold",size = 6)+
+    theme_minimal(base_size = 12)+
+      theme(axis.text.x = element_text(angle = 45,
+        vjust = .5,
+        hjust = 0.5,
+        size = 14),
+    axis.text.y = element_text(size = 14), axis.title.x = element_text(size = 16),axis.title.y = element_text(size = 16))+
+      scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 7)+
     labs(x = "Husholdnings størrelse", y = "Kommune sentralitet")
 
 
@@ -180,10 +198,16 @@ ag_noise_rog<- read.xlsx(xlsxFile = sansynlighetsvekter_dir,sheet = sheet_names[
   mutate(ra_label = paste(relativ_avvik,"%"))
 
 ggplot(ag_noise_rog,aes(x = alder_gruppe, y = sentralitetsklasse))+
-  geom_tile(aes(fill = relativ_avvik))+
-  geom_text(aes(label = ra_label),color = "white",fontface = "bold")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.5))+
+  geom_tile(aes(fill = relativ_avvik),show.legend = F)+
+  geom_text(aes(label = ra_label),color = "white",fontface = "bold",size = 6)+
+  theme_minimal(base_size = 12)+
+  theme(axis.text.x = element_text(angle = 45,
+      vjust = .5,
+      hjust = 0.5,
+      size = 14),
+  axis.text.y = element_text(size = 14),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16))+
   scale_fill_gradient2(low = muted("green"),mid = "#f8bf05ff", high = muted("red"),midpoint = 50)+
   labs(x = "Alder gruppe", y = "Kommune sentralitet")
 
@@ -241,8 +265,16 @@ bolig_eierskap_3_1<- read.xlsx(xlsxFile = here("Data","panda_vekter","figure3_2-
 
 ggplot(bolig_eierskap_3_1,aes(x = hhstr,y = kvd_meter,group = interaction(sentralitet,region)))+
   geom_line(aes(color = sentralitet,linetype = region),linewidth = 1.3)+
-  theme_minimal()+
-  theme(legend.title = element_text(face = "bold"))+
+  theme_minimal(base_size = 12)+
+  theme(axis.text.x = element_text(angle = 45,
+      vjust = .5,
+      hjust = 0.5,
+      size = 14),
+  axis.text.y = element_text(size = 14),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  legend.title = element_text("bold",size = 14),
+  legend.text  = element_text(size = 14))+
   labs(x = "Husholdning størrelse", y = "Bruksareal (kvd meter)")+
   guides(color = guide_legend(title = "Sentralitet"),linetype = guide_legend(title = "Region"))
 
@@ -255,6 +287,14 @@ bolig_eierskap_3_2<- read.xlsx(xlsxFile = here("Data","panda_vekter","figure3_2-
 ggplot(bolig_eierskap_3_2,aes(x = alder_gruppe,y = kvd_meter,group = interaction(sentralitet,region)))+
   geom_line(aes(color = sentralitet,linetype = region),linewidth = 1.3)+
   theme_minimal()+
-  theme(legend.title = element_text(face = "bold"))+
+    theme(axis.text.x = element_text(angle = 45,
+      vjust = .5,
+      hjust = 0.5,
+      size = 14),
+  axis.text.y = element_text(size = 14),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  legend.title = element_text("bold",size = 14),
+  legend.text  = element_text(size = 14))+
   labs(x = "Husholdning alder", y = "Bruksareal (kvd meter)")+
   guides(color = guide_legend(title = "Sentralitet"),linetype = guide_legend(title = "Region"))
