@@ -84,7 +84,7 @@ P_h_a_s <- read.xlsx(here("Data","panda_vekter","p_dist_nasjonal.xlsx"),
   pivot_longer(cols = hh_1:hh_6,names_to = "hhstr",values_to = "value") %>% 
   mutate(value = replace_na(value,0)) %>% 
   mutate(sentralitet = if_else(sentralitet/10 <1,paste0("0",as.character(sentralitet)),as.character(sentralitet))) %>% 
-  mutate(value = value/100)
+  mutate(value = value/100)#rescale the prob distributions to [0-1]
 ##P(c|h,a,s)
 
 P_c_h_a_s<- read.xlsx(here("Data","panda_vekter","p_dist_nasjonal.xlsx"),
@@ -152,12 +152,33 @@ for(i in 1:nrow(projection_bf)){
 
 }
 
-write.table(bolig_prognoser, file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.txt"),sep = ";",row.names = F,col.names = T,fileEncoding = "UTF-8")
+##inspect
 
-write.xlsx(x = bolig_prognoser,file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx"))
+prognose_test_graph<-bolig_prognoser %>% 
+  filter(grepl("MMMM|HHMH|LLML",framskriving_alternativ,fixed = F) & kommune_navn == "Stavanger" & husholdning_størrelse == "3" & alder_gruppe == "30-39 år") %>% 
+  select(år,framskriving_alternativ,contains("_p")) %>% 
+  select(-udefinert_p) %>% 
+  pivot_longer(cols = små_bolig_p:stor_bolig_p, names_to = "bolig_størrelse", values_to = "antall_boliger") %>% 
+  mutate(bolig_størrelse = gsub("_p","",bolig_størrelse),
+         bolig_størrelse = if_else(bolig_størrelse == "små_bolig","liten_bolig",bolig_størrelse))
+
+prognose_test_graph %>% 
+  mutate(år = lubridate::as_date(paste0(år,"-01-01"))) %>% 
+  ggplot(aes(x = år, y = antall_boliger, group = framskriving_alternativ)) +
+  geom_line(aes(color  = framskriving_alternativ))+
+  theme_bw(base_size = 16)+
+  theme(axis.text.x = element_text(angle = 45,vjust = .5))+
+  labs(title = "Stavanger - 3 personer - 30-39 år")+
+  facet_wrap(~bolig_størrelse)
 
 
-##DO NOT RUN - PANDA MODEL IS BROKEN##
+
+write.table(bolig_prognoser, file = here("Data","Panda_prognoser","befolkning_scenario_prognoser_redigert.txt"),sep = ";",row.names = F,col.names = T,fileEncoding = "UTF-8")
+
+write.xlsx(x = bolig_prognoser,file = here("Data","Panda_prognoser","befolkning_scenario_prognoser_redigert.xlsx"))
+
+
+##DO NOT RUN - PANDA MODEL YIELDS HIGHER VALUES THAN SSB##
 # merge projections ------------------------------------------------------
 
 # firem <- read.xlsx(here("Data","Analyse_data","prognose_analyse_data.xlsx"),sheet = 1) %>% 

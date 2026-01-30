@@ -37,9 +37,19 @@ bf_jf<- left_join(bf_faktisk,bf_formell,by = c("alder_gruppe","kommune")) %>%
 
 remove(bf_faktisk,bf_formell)
 
+
 km_sentralitet<- read.xlsx(xlsxFile = here("Data","Aux_data","kommune_sentralitet_1994_2024.xlsx"),
-sheet = 1) %>% 
+sheet = 1)
+
+vindafjord<- km_sentralitet %>% 
+  filter(kommune_navn == "Vindafjord (2006-)") %>% 
+  mutate(kommune_navn = gsub(" \\(2006-\\)","",kommune_navn))
+
+km_sentralitet<- km_sentralitet %>% 
+  filter(!grepl("\\(|\\)",kommune_navn,perl = T)) %>% 
+  rbind(.,vindafjord) %>% 
   rename(sentralitet = sentralitetsklasse)
+
 
 
 
@@ -107,7 +117,7 @@ P_d_c_a_s<- read.xlsx(here("Data","panda_vekter","p_dist_nasjonal.xlsx"),sheet =
 # projections ------------------------------------------------------------
 
 projection_bf<- bf %>% 
-  filter(framskriving_dato == 2024) %>% 
+  filter(framskriving_dato == 2024) %>%
   group_by(statistikkvariabel) %>% 
   nest()
 
@@ -126,20 +136,21 @@ for(i in 1:nrow(projection_bf)){
                        mutate(justert_value = round(value*justeringsfaktor))
 
   husholdning_sammensetning<- left_join(befolkning_justert,P_h_a_s, by = c("sentralitet","alder_gruppe"),relationship = "many-to-many") %>%
-    mutate(hh_sammensetning = round(value.x*value.y)) %>% 
-    select(-value.x,-value.y,-justeringsfaktor,-justert_value)
+    mutate(hh_sammensetning = round(value.x*value.y)) #%>% 
+    #select(-value.x,-value.y,-justeringsfaktor,-justert_value)
   
   antall_husholdning<- left_join(husholdning_sammensetning, P_c_h_a_s, by = c("sentralitet","alder_gruppe","hhstr")) %>% 
-    mutate(antall_husholdning = round(hh_sammensetning*value)) %>% 
-    select(-hh_sammensetning,-value)
+    mutate(antall_husholdning = round(hh_sammensetning*value)) #%>% 
+    #select(-hh_sammensetning,-value)
 
+  #NAs are from dwelling preferenses for the households age group 0-14, which doesnt exist
   bolig_preferanse<- left_join(antall_husholdning,P_d_c_a_s, by = c("sentralitet","alder_gruppe","hhstr")) %>% 
     mutate(små_bolig_p = round(antall_husholdning * små.bolig),
            mellom_bolig_p = round(antall_husholdning * mellom.størrelse.bolig),
            stor_bolig_p = round(antall_husholdning * stor.bolig),
            udefinert_p = round(antall_husholdning * udefinert)) %>% 
     mutate(framskriving_alternativ = alternativ) %>% 
-    select(framskriving_alternativ,kommune_navn,kommune_kode, år, sentralitet,alder_gruppe,hhstr,små_bolig_p,mellom_bolig_p,stor_bolig_p,udefinert_p) %>% 
+    #select(framskriving_alternativ,kommune_navn,kommune_kode, år, sentralitet,alder_gruppe,hhstr,små_bolig_p,mellom_bolig_p,stor_bolig_p,udefinert_p) %>% 
     drop_na() %>% 
     mutate(hhstr = gsub("hh_","",hhstr),
            hhstr = if_else(hhstr == "6",paste0(hhstr,"+"),hhstr)) %>% 
@@ -152,62 +163,127 @@ for(i in 1:nrow(projection_bf)){
 
 }
 
-write.table(bolig_prognoser, file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.txt"),sep = ";",row.names = F,col.names = T,fileEncoding = "UTF-8")
-
-write.xlsx(x = bolig_prognoser,file = here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx"))
+write.xlsx(x = bolig_prognoser,file = here("Data","Panda_prognoser","befolkning_scenario_prognoser_test.xlsx"))
 
 
-##DO NOT RUN - PANDA MODEL IS BROKEN##
+write.table(bolig_prognoser, file = here("Data","Panda_prognoser","befolkning_scenario_prognoser_test.txt"),sep = ";",row.names = F,col.names = T,fileEncoding = "UTF-8")
+
+
+# hovedalternativ sammenligning ------------------------------------------
+
+##comparison
+
+#HHMH (har bare sett på MMMM, HHMH og LLML) - men det er ikke konsekvent. Har også sett tilfeller der MMMM er lavest (feks for Store boliger, Stavanger, 3 personer, 30-39 år)
+
+prognose_test<- bolig_prognoser %>% 
+  filter(grepl("MMMM|HHMH|LLML",framskriving_alternativ,fixed = F) & kommune_navn == "Stavanger" & husholdning_størrelse == "3" & alder_gruppe == "30-39 år")
+
+prognose_test_graph<- prognose_test  %>%  select(år,framskriving_alternativ,contains("_p")) %>% 
+  select(-udefinert_p) %>% 
+  pivot_longer(cols = små_bolig_p:stor_bolig_p, names_to = "bolig_størrelse", values_to = "antall_boliger") %>% 
+  mutate(bolig_størrelse = gsub("_p","",bolig_størrelse),
+         bolig_størrelse = if_else(bolig_størrelse == "små_bolig","liten_bolig",bolig_størrelse))
+
+prognose_test_graph %>% 
+  mutate(år = lubridate::as_date(paste0(år,"-01-01"))) %>% 
+  ggplot(aes(x = år, y = antall_boliger, group = framskriving_alternativ)) +
+  geom_line(aes(color  = framskriving_alternativ))+
+  theme_bw(base_size = 16)+
+  theme(axis.text.x = element_text(angle = 45,vjust = .5))+
+  labs(title = "Stavanger - 3 personer - 30-39 år")+
+  facet_wrap(~bolig_størrelse)
+
+##Panda modell
+
+panda_model <- read.xlsx(here("Data","Analyse_data","prognose_analyse_data.xlsx"),sheet = 1) %>% 
+  rename(kommune_kode = municipality_code,
+         kommune_navn = municipality_name,
+         år = year,
+         husholdning_størrelse = household_size,
+         alder_gruppe = household_age,
+        sentralitet = sentralitetsklasse) %>% 
+  mutate(bolig_storrelse = case_when(bolig_storrelse == "0-79 kvdm"~"liten_bolig",
+                                     bolig_storrelse == "80-159 kvdm"~"mellom_bolig",
+                                     bolig_storrelse == "160+ kvdm" ~ "stor_bolig",.default = "udefiner_p")) %>% 
+  pivot_wider(names_from = bolig_storrelse,values_from = housing_demand) %>% 
+  mutate(framskriving_alternativ = "Hovedalternativet (MMMM)") %>% 
+  mutate(år = gsub("-01-01","",år)) %>% 
+  mutate(alder_gruppe = paste0(alder_gruppe," år")) %>% 
+  filter(alder_gruppe != "0-14 år")
+
+panda_model_stavanger<- panda_model %>% 
+  filter(kommune_navn == "Stavanger" & husholdning_størrelse == "3 Personer" & alder_gruppe == "30-39 år") %>% 
+  pivot_longer(stor_bolig:liten_bolig,names_to = "bolig_størrelse",values_to = "antall_boliger") %>% 
+  mutate(husholdning_størrelse = gsub(" Personer","",husholdning_størrelse)) %>% 
+  mutate(model = "panda") %>% 
+  select(år,model,bolig_størrelse,antall_boliger)
+
+prognose_test_graph<- prognose_test_graph %>% 
+  filter(grepl("MMMM",framskriving_alternativ, perl = T)) %>% 
+  mutate(model = "RFK") %>% 
+  select(år,model,antall_boliger,bolig_størrelse)
+
+comp_graph<- rbind(panda_model_stavanger,prognose_test_graph)
+
+
+comp_graph %>% 
+  mutate(år = lubridate::as_date(paste0(år,"-01-01"))) %>% 
+  ggplot(aes(x = år,y = antall_boliger, group = interaction(bolig_størrelse,model)))+
+  geom_line(aes(color = bolig_størrelse,linetype = model))+
+  theme_bw(base_size = 16)+
+  labs(title = "Panda model vs RFK model",subtitle = "Stavanger - 3 personer - 30-39 år")
+
+
 # merge projections ------------------------------------------------------
 
-# firem <- read.xlsx(here("Data","Analyse_data","prognose_analyse_data.xlsx"),sheet = 1) %>% 
-#   rename(kommune_kode = municipality_code,
-#          kommune_navn = municipality_name,
-#          år = year,
-#          husholdning_størrelse = household_size,
-#          alder_gruppe = household_age,
-#         sentralitet = sentralitetsklasse) %>% 
-#   mutate(bolig_storrelse = case_when(bolig_storrelse == "0-79 kvdm"~"små_bolig_p",
-#                                      bolig_storrelse == "80-159 kvdm"~"mellom_bolig_p",
-#                                      bolig_storrelse == "160+ kvdm" ~ "stor_bolig_p",.default = "udefiner_p")) %>% 
-#   pivot_wider(names_from = bolig_storrelse,values_from = housing_demand) %>% 
-#   mutate(framskriving_alternativ = "Hovedalternativet (MMMM)") %>% 
-#   mutate(år = gsub("-01-01","",år)) %>% 
-#   mutate(alder_gruppe = paste0(alder_gruppe," år")) %>% 
-#   filter(alder_gruppe != "0-14 år")
+firem <- read.xlsx(here("Data","Analyse_data","prognose_analyse_data.xlsx"),sheet = 1) %>% 
+  rename(kommune_kode = municipality_code,
+         kommune_navn = municipality_name,
+         år = year,
+         husholdning_størrelse = household_size,
+         alder_gruppe = household_age,
+        sentralitet = sentralitetsklasse) %>% 
+  mutate(bolig_storrelse = case_when(bolig_storrelse == "0-79 kvdm"~"små_bolig_p",
+                                     bolig_storrelse == "80-159 kvdm"~"mellom_bolig_p",
+                                     bolig_storrelse == "160+ kvdm" ~ "stor_bolig_p",.default = "udefiner_p")) %>% 
+  pivot_wider(names_from = bolig_storrelse,values_from = housing_demand) %>% 
+  mutate(framskriving_alternativ = "Hovedalternativet (MMMM)") %>% 
+  mutate(år = gsub("-01-01","",år)) %>% 
+  mutate(alder_gruppe = paste0(alder_gruppe," år")) %>% 
+  filter(alder_gruppe != "0-14 år")
 
-# distrikter<- firem %>% 
-#   select(kommune_kode,kommune_navn,oekonomiskregion_kode,oekonomiskregion_navn) %>% 
-#   distinct()
+distrikter<- firem %>% 
+  select(kommune_kode,kommune_navn,oekonomiskregion_kode,oekonomiskregion_navn) %>% 
+  distinct()
   
-# andre_alternativer<- read.xlsx(here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx")) %>% 
-#   left_join(.,distrikter, by = c("kommune_kode","kommune_navn")) %>% 
-#   select(-udefinert_p) %>% 
-#   filter(år != "2024") %>% 
-#   mutate(husholdning_størrelse = paste0(husholdning_størrelse," Personer"))
+andre_alternativer<- read.xlsx(here("Data","Panda_prognoser","befolkning_scenario_prognoser.xlsx")) %>% 
+  left_join(.,distrikter, by = c("kommune_kode","kommune_navn")) %>% 
+  select(-udefinert_p) %>% 
+  filter(år != "2024") %>% 
+  mutate(husholdning_størrelse = paste0(husholdning_størrelse," Personer"))
 
 
-# full_prognoser<- rbind(firem,andre_alternativer)
+full_prognoser<- rbind(firem,andre_alternativer)
 
-# summarytools::dfSummary(full_prognoser)
+summarytools::dfSummary(full_prognoser)
 
-# #.txt
-# write.table(full_prognoser,
-#    file = here("Data","Analyse_data","boligbehov_scenario_prognoser.txt"),
-#    sep = ";",
-#    row.names = F,
-#    col.names = T,
-#    fileEncoding = "UTF-8")
+#.txt
+write.table(full_prognoser,
+   file = here("Data","Analyse_data","boligbehov_scenario_prognoser.txt"),
+   sep = ";",
+   row.names = F,
+   col.names = T,
+   fileEncoding = "UTF-8")
 
-# #.csv
+#.csv
 
-# write.table(full_prognoser,
-#   file = here("Data","Analyse_data","boligbehov_scenario_prognoser.csv"),
-#   sep = ",",
-#   row.names = F,
-#   col.names = T,
-#   fileEncoding = "UTF-8")
+write.table(full_prognoser,
+  file = here("Data","Analyse_data","boligbehov_scenario_prognoser.csv"),
+  sep = ",",
+  row.names = F,
+  col.names = T,
+  fileEncoding = "UTF-8")
 
-# #.xlsx
-# write.xlsx(full_prognoser,
-#   file = here("Data","Analyse_data","boligbehov_scenario_prognoser.xlslx"))
+#.xlsx
+write.xlsx(full_prognoser,
+  file = here("Data","Analyse_data","boligbehov_scenario_prognoser.xlslx"))
